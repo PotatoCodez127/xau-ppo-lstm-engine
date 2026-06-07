@@ -81,12 +81,31 @@ def build_master_dataset(xau_m1_path: str, dxy_m1_path: str) -> pd.DataFrame:
     return master
 
 if __name__ == "__main__":
-    print("Starting Master Processor...")
-    # Point to the 4-year synthetic data
+    print("Starting Master Processor for FORWARD TESTING...")
+    # Point back to the REAL 2026 MT5 data we cleaned earlier
     df_master = build_master_dataset(
-        '../data/processed/xauusd_m1_synthetic_4yrs.csv', 
+        '../data/processed/xauusd_m1_clean.csv', 
         '../data/processed/dxy_m1_clean.csv'
     )
-    # Save the output
-    df_master.to_csv('../data/processed/master_features_15m.csv')
-    print("Successfully saved master_features_15m.csv")
+    # Save as a distinct test file so we don't overwrite our training set
+    df_master.to_csv('../data/processed/test_features_15m.csv')
+    print("Successfully saved test_features_15m.csv")
+
+# ==========================================================================
+# ===============================FOR TRAINING===============================
+# ==========================================================================
+
+# if __name__ == "__main__":
+#     print("Starting Master Processor...")
+#     # Point to the 4-year synthetic data
+#     df_master = build_master_dataset(
+#         '../data/processed/xauusd_m1_synthetic_4yrs.csv', 
+#         '../data/processed/dxy_m1_clean.csv'
+#     )
+#     # Save the output
+#     df_master.to_csv('../data/processed/master_features_15m.csv')
+#     print("Successfully saved master_features_15m.csv")
+
+# ==========================================================================
+# ===============================FOR TRAINING===============================
+# ==========================================================================
