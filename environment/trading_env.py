@@ -148,9 +148,10 @@ class GoldTradingEnv(gym.Env):
             else:
                 reward -= 0.1 
                 
-        # Penalty for extreme cowardice (sitting flat too long)
+        # A micro-tax for sitting flat. 
+        # Small enough to let the bot be patient, but prevents it from literally never trading.
         if self.position == 0:
-            reward -= 0.25
+            reward -= 0.001
 
         # Blowout check
         if self.balance <= 0:
