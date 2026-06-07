@@ -78,8 +78,13 @@ class GoldTradingEnv(gym.Env):
         return np.array(obs, dtype=np.float32)
 
     def _get_info(self):
+        # Calculate live floating PnL
+        current_price = self.df.loc[self.current_step, 'close']
+        unrealized_pnl = (current_price - self.entry_price) * self.position if self.position != 0 else 0.0
+        
         return {
             "balance": self.balance,
+            "equity": self.balance + unrealized_pnl, # True account value
             "position": self.position,
             "step": self.current_step
         }
@@ -87,14 +92,13 @@ class GoldTradingEnv(gym.Env):
     def step(self, action):
         self.current_step += 1
         
-        # Check if we've reached the end of the dataset
         terminated = self.current_step >= len(self.data) - 1
         truncated = False
         
         current_price = self.df.loc[self.current_step, 'close']
         reward = 0.0
         
-        # Action Logic Execution
+        # --- 1. ACTION EXECUTION & REALIZED REWARDS ---
         if action == 1: # BUY
             if self.position == 0:
                 self.position = 1
@@ -102,9 +106,10 @@ class GoldTradingEnv(gym.Env):
             elif self.position == -1: # Close Short, Open Long
                 trade_profit = self.entry_price - current_price
                 self.balance += trade_profit
-                reward += trade_profit
                 self.position = 1
                 self.entry_price = current_price
+                # Huge dopamine hit for taking profit, pain for realizing a loss
+                reward += (trade_profit * 5.0) 
                 
         elif action == 2: # SELL
             if self.position == 0:
@@ -113,42 +118,44 @@ class GoldTradingEnv(gym.Env):
             elif self.position == 1: # Close Long, Open Short
                 trade_profit = current_price - self.entry_price
                 self.balance += trade_profit
-                reward += trade_profit
                 self.position = -1
                 self.entry_price = current_price
+                # Huge dopamine hit for taking profit, pain for realizing a loss
+                reward += (trade_profit * 5.0) 
                 
         elif action == 3: # CLOSE
             if self.position == 1:
                 trade_profit = current_price - self.entry_price
                 self.balance += trade_profit
-                reward += trade_profit
                 self.position = 0
+                # Huge dopamine hit for locking in profit
+                reward += (trade_profit * 5.0) 
             elif self.position == -1:
                 trade_profit = self.entry_price - current_price
                 self.balance += trade_profit
-                reward += trade_profit
                 self.position = 0
+                # Huge dopamine hit for locking in profit
+                reward += (trade_profit * 5.0) 
                 
-        # --- THE REWARD ENGINEERING (CRITICAL FOR GOLD) ---
-        # If holding a position, calculate unrealized PnL to apply Drawdown Penalties
+        # --- 2. FLOATING PENALTIES (No more milking!) ---
         if self.position != 0:
             unrealized_pnl = (current_price - self.entry_price) * self.position
             
-            # 1. Soften the drawdown penalty slightly so it isn't terrified of normal Gold volatility
+            # Drawdown still hurts, forcing it to cut losers
             if unrealized_pnl < 0:
-                reward += (unrealized_pnl * 1.0)  
-            # 2. MASSIVELY increase the dopamine hit for being in profit
+                reward += (unrealized_pnl * 1.0)
+            # Time Decay: A tiny tax for holding open positions, forcing it to look for an exit
             else:
-                reward += (unrealized_pnl * 0.5)  
+                reward -= 0.1 
                 
-        # 3. Increase the pain of being a coward (sitting flat)
+        # Penalty for extreme cowardice (sitting flat too long)
         if self.position == 0:
             reward -= 0.25
 
-        # Check for account blowout
+        # Blowout check
         if self.balance <= 0:
             terminated = True
-            reward -= 10000 # Massive penalty for blowing the account
+            reward -= 10000
 
         obs = self._next_observation()
         info = self._get_info()
