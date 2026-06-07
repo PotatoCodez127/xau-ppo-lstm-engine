@@ -46,8 +46,13 @@ class GoldTradingEnv(gym.Env):
         
     def _filter_session(self, df: pd.DataFrame, session: str) -> pd.DataFrame:
         """Filters the dataframe to strictly trade within specific regimes."""
+        # Force the 'time' column to be actual Datetime objects, not strings
         if 'time' in df.columns:
+            df['time'] = pd.to_datetime(df['time'])
             df = df.set_index('time')
+        # If time is already the index but still a string, convert it
+        elif not isinstance(df.index, pd.DatetimeIndex):
+            df.index = pd.to_datetime(df.index)
             
         # Using detected EET Broker Time
         if session == 'LONDON':
