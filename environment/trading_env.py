@@ -134,17 +134,16 @@ class GoldTradingEnv(gym.Env):
         if self.position != 0:
             unrealized_pnl = (current_price - self.entry_price) * self.position
             
-            # Drawdown Penalty: If the trade is currently negative, multiply the pain.
-            # This teaches the bot to cut losers fast instead of holding and hoping.
+            # 1. Soften the drawdown penalty slightly so it isn't terrified of normal Gold volatility
             if unrealized_pnl < 0:
-                reward += (unrealized_pnl * 1.5)  # 1.5x penalty modifier for being underwater
+                reward += (unrealized_pnl * 1.0)  
+            # 2. MASSIVELY increase the dopamine hit for being in profit
             else:
-                # Small reward for riding a wave in the right direction (helps gradient flow)
-                reward += (unrealized_pnl * 0.1)  
+                reward += (unrealized_pnl * 0.5)  
                 
-        # Penalty for inactivity (prevents the bot from just holding 0 forever)
+        # 3. Increase the pain of being a coward (sitting flat)
         if self.position == 0:
-            reward -= 0.05
+            reward -= 0.25
 
         # Check for account blowout
         if self.balance <= 0:
