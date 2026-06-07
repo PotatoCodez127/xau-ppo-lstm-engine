@@ -1,0 +1,10 @@
+# Data Manipulation & Features
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Reinforcement Learning Environment
+gymnasium>=0.29.1
+
+# Deep Learning & AI Agent
+torch>=2.0.0
+stable-baselines3[extra]>=2.2.1
