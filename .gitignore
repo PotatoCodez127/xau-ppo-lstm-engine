@@ -2,3 +2,7 @@ chores.md
 .env
 .venv
 __pycache__/
+lstm_ppo_gold_london.zip
+lstm_ppo_gold_london_final.zip
+forward_trading_journal.csv
+saved_models/

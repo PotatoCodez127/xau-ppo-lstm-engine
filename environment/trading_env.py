@@ -98,7 +98,7 @@ class GoldTradingEnv(gym.Env):
         current_price = self.df.loc[self.current_step, 'close']
         reward = 0.0
         
-        # --- 1. ACTION EXECUTION (Asymmetric Rewards) ---
+        # --- 1. ACTION EXECUTION (Asymmetric Realized Rewards) ---
         if action == 1: # BUY
             if self.position == 0:
                 self.position = 1
@@ -108,7 +108,7 @@ class GoldTradingEnv(gym.Env):
                 self.balance += trade_profit
                 self.position = 1
                 self.entry_price = current_price
-                # Huge dopamine for winning, normal pain for losing
+                # 5x Dopamine hit for winning, normal 1x pain for losing
                 reward += (trade_profit * 5.0) if trade_profit > 0 else trade_profit
                 
         elif action == 2: # SELL
@@ -139,13 +139,10 @@ class GoldTradingEnv(gym.Env):
             unrealized_pnl = (current_price - self.entry_price) * self.position
             
             if unrealized_pnl < 0:
-                # Soften the floating pain. Let the bot breathe through Gold's wicks.
                 reward += (unrealized_pnl * 0.1) 
             else:
-                # A tiny breadcrumb trail of dopamine to encourage holding winners
                 reward += 0.05 
                 
-        # A micro-tax for sitting flat to prevent permanent hibernation
         if self.position == 0:
             reward -= 0.001
 
