@@ -77,7 +77,11 @@ def build_master_dataset(xau_m1_path: str, dxy_m1_path: str) -> pd.DataFrame:
     return master
 
 if __name__ == "__main__":
-    # Example execution (Paths will be swapped for real ones later)
-    # df_master = build_master_dataset('../data/raw/continuous_master_M1.csv', '../data/raw/DXY_M1.csv')
-    # df_master.to_csv('../data/processed/master_features_15m.csv')
-    pass
+    print("Starting Master Processor...")
+    df_master = build_master_dataset(
+        '../data/processed/xauusd_m1_clean.csv', 
+        '../data/processed/dxy_m1_clean.csv'
+    )
+    # Save the output
+    df_master.to_csv('../data/processed/master_features_15m.csv')
+    print("Successfully saved master_features_15m.csv")
