@@ -69,6 +69,10 @@ def build_master_dataset(xau_m1_path: str, dxy_m1_path: str) -> pd.DataFrame:
     
     # Merge DXY
     master = pd.merge_asof(master, dxy_15m[['dxy_pct_change_15m']], left_index=True, right_index=True)
+    # FIX: Fill missing DXY values with 0.0 (neutral momentum) to protect synthetic rows
+    master['dxy_pct_change_15m'] = master['dxy_pct_change_15m'].fillna(0.0)
+    # Cleanup NaN values resulting from the multi-timeframe S&R rolling windows
+    master = master.dropna()
     
     # Cleanup NaN values resulting from the rolling windows
     master = master.dropna()
