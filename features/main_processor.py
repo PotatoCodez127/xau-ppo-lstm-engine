@@ -78,8 +78,9 @@ def build_master_dataset(xau_m1_path: str, dxy_m1_path: str) -> pd.DataFrame:
 
 if __name__ == "__main__":
     print("Starting Master Processor...")
+    # Point to the 4-year synthetic data
     df_master = build_master_dataset(
-        '../data/processed/xauusd_m1_clean.csv', 
+        '../data/processed/xauusd_m1_synthetic_4yrs.csv', 
         '../data/processed/dxy_m1_clean.csv'
     )
     # Save the output
