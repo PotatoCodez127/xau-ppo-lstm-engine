@@ -3,6 +3,7 @@ import torch.nn as nn
 import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import gymnasium as gym
 
@@ -104,7 +105,11 @@ def train_session_model(csv_path: str, session: str, total_timesteps: int = 1000
     df = pd.read_csv(csv_path)
     
     # Initialize the custom Gym environment
-    env = GoldTradingEnv(df=df, session=session, window_size=30)
+    env_raw = GoldTradingEnv(df=df, session=session, window_size=30)
+    
+    # NEW: Wrap the environment to mathematically normalize the raw prices on the fly
+    env = DummyVecEnv([lambda: env_raw])
+    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.0)
     
     # Tell Stable-Baselines3 to use our custom LSTM instead of standard Linear layers
     policy_kwargs = dict(
@@ -146,6 +151,7 @@ def train_session_model(csv_path: str, session: str, total_timesteps: int = 1000
     
     save_path = f"lstm_ppo_gold_{session.lower()}_final.zip"
     model.save(save_path)
+    env.save(f"vec_normalize_{session.lower()}.pkl")
     print(f"Training complete. Model saved to {save_path}")
 
 if __name__ == "__main__":
