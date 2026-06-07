@@ -49,12 +49,11 @@ class GoldTradingEnv(gym.Env):
         if 'time' in df.columns:
             df = df.set_index('time')
             
+        # Using detected EET Broker Time
         if session == 'LONDON':
-            # 08:00 to 13:00 GMT
-            return df.between_time('08:00', '13:00')
+            return df.between_time('09:00', '14:00')
         elif session == 'NY':
-            # 13:00 to 17:00 GMT
-            return df.between_time('13:00', '17:00')
+            return df.between_time('14:00', '18:00')
         return df
 
     def reset(self, seed=None, options=None):
