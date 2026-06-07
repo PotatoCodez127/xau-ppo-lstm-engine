@@ -1,3 +1,4 @@
 chores.md
 .env
 .venv
+__pycache__/
