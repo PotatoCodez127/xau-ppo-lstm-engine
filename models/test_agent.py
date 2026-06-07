@@ -27,7 +27,7 @@ def run_forward_test(model_path: str, test_data_path: str, session: str):
     obs, info = env.reset()
     
     # Tracking variables for our Trading Journal
-    equity_curve = [info['balance']]
+    equity_curve = [info['equity']] # Track equity
     trade_journal = []
     
     print("Starting Forward Simulation (Inference Mode)...")
@@ -43,7 +43,8 @@ def run_forward_test(model_path: str, test_data_path: str, session: str):
         obs, reward, terminated, truncated, info = env.step(int(action))
         
         # Log the equity curve
-        equity_curve.append(info['balance'])
+        # Log the equity curve
+        equity_curve.append(info['equity'])
         
         # Log the actions for the journal
         action_name = {0: "HOLD", 1: "BUY", 2: "SELL", 3: "CLOSE"}[int(action)]
@@ -52,12 +53,14 @@ def run_forward_test(model_path: str, test_data_path: str, session: str):
                 "step": info['step'],
                 "action": action_name,
                 "position_state": info['position'],
-                "balance": info['balance']
+                "balance": info['balance'],
+                "equity": info['equity'] # Add equity to the journal
             })
 
     print("\n--- SIMULATION COMPLETE ---")
     print(f"Starting Balance: ${env.initial_balance}")
     print(f"Ending Balance:   ${info['balance']:.2f}")
+    print(f"Ending Equity:    ${info['equity']:.2f}")
     
     # 1. Save Trading Journal
     journal_df = pd.DataFrame(trade_journal)
