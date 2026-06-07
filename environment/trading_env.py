@@ -98,58 +98,54 @@ class GoldTradingEnv(gym.Env):
         current_price = self.df.loc[self.current_step, 'close']
         reward = 0.0
         
-        # --- 1. ACTION EXECUTION & REALIZED REWARDS ---
+        # --- 1. ACTION EXECUTION (Asymmetric Rewards) ---
         if action == 1: # BUY
             if self.position == 0:
                 self.position = 1
                 self.entry_price = current_price
-            elif self.position == -1: # Close Short, Open Long
+            elif self.position == -1: 
                 trade_profit = self.entry_price - current_price
                 self.balance += trade_profit
                 self.position = 1
                 self.entry_price = current_price
-                # Huge dopamine hit for taking profit, pain for realizing a loss
-                reward += (trade_profit * 5.0) 
+                # Huge dopamine for winning, normal pain for losing
+                reward += (trade_profit * 5.0) if trade_profit > 0 else trade_profit
                 
         elif action == 2: # SELL
             if self.position == 0:
                 self.position = -1
                 self.entry_price = current_price
-            elif self.position == 1: # Close Long, Open Short
+            elif self.position == 1: 
                 trade_profit = current_price - self.entry_price
                 self.balance += trade_profit
                 self.position = -1
                 self.entry_price = current_price
-                # Huge dopamine hit for taking profit, pain for realizing a loss
-                reward += (trade_profit * 5.0) 
+                reward += (trade_profit * 5.0) if trade_profit > 0 else trade_profit
                 
         elif action == 3: # CLOSE
             if self.position == 1:
                 trade_profit = current_price - self.entry_price
                 self.balance += trade_profit
                 self.position = 0
-                # Huge dopamine hit for locking in profit
-                reward += (trade_profit * 5.0) 
+                reward += (trade_profit * 5.0) if trade_profit > 0 else trade_profit
             elif self.position == -1:
                 trade_profit = self.entry_price - current_price
                 self.balance += trade_profit
                 self.position = 0
-                # Huge dopamine hit for locking in profit
-                reward += (trade_profit * 5.0) 
+                reward += (trade_profit * 5.0) if trade_profit > 0 else trade_profit
                 
-        # --- 2. FLOATING PENALTIES (No more milking!) ---
+        # --- 2. FLOATING PENALTIES & BREADCRUMBS ---
         if self.position != 0:
             unrealized_pnl = (current_price - self.entry_price) * self.position
             
-            # Drawdown still hurts, forcing it to cut losers
             if unrealized_pnl < 0:
-                reward += (unrealized_pnl * 1.0)
-            # Time Decay: A tiny tax for holding open positions, forcing it to look for an exit
+                # Soften the floating pain. Let the bot breathe through Gold's wicks.
+                reward += (unrealized_pnl * 0.1) 
             else:
-                reward -= 0.1 
+                # A tiny breadcrumb trail of dopamine to encourage holding winners
+                reward += 0.05 
                 
-        # A micro-tax for sitting flat. 
-        # Small enough to let the bot be patient, but prevents it from literally never trading.
+        # A micro-tax for sitting flat to prevent permanent hibernation
         if self.position == 0:
             reward -= 0.001
 
