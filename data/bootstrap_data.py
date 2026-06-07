@@ -43,7 +43,9 @@ def generate_synthetic_gold(input_csv: str, output_csv: str, target_years: int =
 
     # 4. Bootstrapping (The Shuffle)
     np.random.seed(42) # For reproducibility 
-    synthetic_blocks = [np.random.choice(daily_blocks) for _ in range(target_days)]
+    # Pick random index numbers instead of passing the whole DataFrames to numpy
+    random_indices = np.random.choice(len(daily_blocks), size=target_days, replace=True)
+    synthetic_blocks = [daily_blocks[i] for i in random_indices]
     
     # Concatenate the shuffled returns into one massive column
     synth_df = pd.concat(synthetic_blocks, ignore_index=True)
