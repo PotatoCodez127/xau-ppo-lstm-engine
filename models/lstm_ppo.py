@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import pandas as pd
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import gymnasium as gym
 
@@ -10,6 +11,46 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from environment.trading_env import GoldTradingEnv
+
+class TradingLoggerCallback(BaseCallback):
+    def __init__(self, check_freq: int = 5000, log_dir: str = "./logs", verbose=0):
+        super(TradingLoggerCallback, self).__init__(verbose)
+        self.check_freq = check_freq
+        self.log_dir = log_dir
+        self.history = []
+        os.makedirs(log_dir, exist_ok=True)
+
+    def _on_step(self) -> bool:
+        # Retrieve the environment's current step info
+        # info is packed as a list of dicts because SB3 vectorizes environments
+        env_info = self.training_env.env_method('_get_info')[0]
+        
+        # Access the last reward given to the agent
+        last_reward = self.locals['rewards'][0]
+        
+        # Save historical snapshots of data points
+        self.history.append({
+            "total_timesteps": self.num_timesteps,
+            "env_step": env_info['step'],
+            "position": env_info['position'],
+            "balance": env_info['balance'],
+            "equity": env_info['equity'],
+            "reward": last_reward
+        })
+
+        # Periodically flush history data to disk to avoid consuming excessive RAM
+        if self.num_timesteps % self.check_freq == 0 and self.history:
+            df_log = pd.DataFrame(self.history)
+            log_file = os.path.join(self.log_dir, "training_step_metrics.csv")
+            
+            # Append if file exists, write header if it doesn't
+            if not os.path.exists(log_file):
+                df_log.to_csv(log_file, index=False)
+            else:
+                df_log.to_csv(log_file, mode='a', header=False, index=False)
+            
+            self.history = [] # Clear temporary buffer memory
+        return True
 
 class LSTMExtractor(BaseFeaturesExtractor):
     """
@@ -86,9 +127,24 @@ def train_session_model(csv_path: str, session: str, total_timesteps: int = 1000
     )
     
     print(f"Beginning Training: {total_timesteps} timesteps...")
-    model.learn(total_timesteps=total_timesteps)
     
-    save_path = f"lstm_ppo_gold_{session.lower()}.zip"
+    # 1. Your custom CSV logger
+    logger_callback = TradingLoggerCallback(check_freq=5000, log_dir="./logs")
+    
+    # 2. NEW: Auto-save the brain every 50,000 steps
+    checkpoint_callback = CheckpointCallback(
+        save_freq=50000, 
+        save_path="./saved_models/", 
+        name_prefix=f"ppo_gold_{session.lower()}"
+    )
+
+    # Pass both callbacks as a list
+    model.learn(
+        total_timesteps=total_timesteps,
+        callback=[logger_callback, checkpoint_callback]
+    )
+    
+    save_path = f"lstm_ppo_gold_{session.lower()}_final.zip"
     model.save(save_path)
     print(f"Training complete. Model saved to {save_path}")
 
