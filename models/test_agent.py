@@ -86,5 +86,6 @@ if __name__ == "__main__":
     run_forward_test(
         model_path='lstm_ppo_gold_london_final.zip',
         test_data_path='../data/processed/test_features_15m.csv',
+        # test_data_path='../data/processed/master_features_15m.csv',
         session='LONDON'
     )
