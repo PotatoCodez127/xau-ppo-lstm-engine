@@ -97,10 +97,12 @@ def build_master_dataset(xau_m1_path: str, dxy_m1_path: str) -> pd.DataFrame:
     return master
 
 if __name__ == "__main__":
-    print("Starting Master Processor for FORWARD TESTING...")
+    print("Starting Master Processor for TRAINING...")
+    # Point to the 4-year synthetic data!
     df_master = build_master_dataset(
-        '../data/processed/xauusd_m1_clean.csv', 
+        '../data/processed/xauusd_m1_synthetic_4yrs.csv', 
         '../data/processed/dxy_m1_clean.csv'
     )
-    df_master.to_csv('../data/processed/test_features_15m.csv')
-    print("Successfully saved test_features_15m.csv")
+    # Save the output to the master features file used by lstm_ppo.py
+    df_master.to_csv('../data/processed/master_features_15m.csv')
+    print("Successfully saved master_features_15m.csv")
