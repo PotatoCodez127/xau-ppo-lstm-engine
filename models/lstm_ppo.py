@@ -58,7 +58,6 @@ def train_session_model(csv_path: str, session: str, total_timesteps: int = 1000
     # Configure the native SB3-Contrib LSTM architecture
     policy_kwargs = dict(
         lstm_hidden_size=128,
-        enable_cudnn_lstm=True, # Uses hardware-accelerated LSTM on GPU
     )
     
     print(f"Initializing Recurrent PPO Agent for {session}...")
