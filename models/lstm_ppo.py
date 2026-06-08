@@ -94,4 +94,4 @@ def train_session_model(csv_path: str, session: str, total_timesteps: int = 1000
     print(f"Training complete. Model saved to {save_path}")
 
 if __name__ == "__main__":
-    train_session_model('../data/processed/master_features_15m.csv', session='LONDON', total_timesteps=100000)
+    train_session_model('../data/processed/master_features_15m.csv', session='LONDON', total_timesteps=5000000)
