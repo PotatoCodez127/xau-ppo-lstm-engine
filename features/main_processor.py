@@ -13,30 +13,31 @@ def resample_hloc(df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
 
 def convert_to_stationary(df: pd.DataFrame) -> pd.DataFrame:
     """
-    CRITICAL FIX: Converts all raw price data into price-agnostic percentage returns 
-    and distances. This solves the 2020 vs 2026 distribution shift.
+    Converts raw prices to stationary percentage distances for the AI, 
+    but preserves raw prices under an 'env_' prefix strictly for PnL math.
     """
     print("Converting raw prices to stationary percentage distances...")
     stationary_df = pd.DataFrame(index=df.index)
     
-    # 1. Price Returns (Bar-to-Bar Momentum)
-    stationary_df['close_ret'] = df['close'].pct_change()
+    # --- ENVIRONMENT VARIABLES (HIDDEN FROM AI) ---
+    # The environment needs these to calculate actual dollar PnL
+    stationary_df['env_open'] = df['open']
+    stationary_df['env_high'] = df['high']
+    stationary_df['env_low'] = df['low']
+    stationary_df['env_close'] = df['close']
     
-    # 2. Intra-bar dynamics (Wick sizes relative to Open)
+    # --- AI OBSERVATION VARIABLES (STATIONARY) ---
+    stationary_df['close_ret'] = df['close'].pct_change()
     stationary_df['high_ret'] = (df['high'] - df['open']) / df['open']
     stationary_df['low_ret'] = (df['low'] - df['open']) / df['open']
     
-    # 3. Distance metrics for all structural zones, EMAs, and Pivots
-    # We exclude the raw OHLC and DXY (which is already a pct_change)
     exclude_cols = ['open', 'high', 'low', 'close', 'dxy_pct_change_15m']
     price_level_cols = [c for c in df.columns if c not in exclude_cols]
     
     for col in price_level_cols:
-        # Calculate % distance from current close to the level.
-        # Positive value = Level is ABOVE current price. Negative = Level is BELOW.
+        # Distance metric: (Level - Current Price) / Current Price
         stationary_df[f'dist_{col}'] = (df[col] - df['close']) / df['close']
         
-    # 4. Add back DXY momentum
     if 'dxy_pct_change_15m' in df.columns:
         stationary_df['dxy_pct_change_15m'] = df['dxy_pct_change_15m']
         
