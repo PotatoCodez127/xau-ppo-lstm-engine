@@ -9,6 +9,8 @@ class GoldTradingEnv(gym.Env):
     def __init__(self, df: pd.DataFrame, session: str = 'ALL', window_size: int = 30, initial_balance: float = 10000.0):
         super(GoldTradingEnv, self).__init__()
         
+        self.window_size = window_size
+        
         self.df = self._filter_session(df.copy(), session).reset_index() 
         
         # 1. HIDE RAW PRICES FROM AI
