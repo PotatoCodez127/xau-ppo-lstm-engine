@@ -45,7 +45,7 @@ def run_pipeline_integration_test():
     
     # 4. Instantiate RecurrentPPO
     print("Instantiating RecurrentPPO model...")
-    policy_kwargs = dict(lstm_hidden_size=64, enable_cudnn_lstm=False) # Turn off cuDNN just for local test safety
+    policy_kwargs = dict(lstm_hidden_size=64)
     
     model = RecurrentPPO(
         "MlpLstmPolicy", 
