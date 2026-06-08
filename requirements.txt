@@ -8,3 +8,5 @@ gymnasium>=0.29.1
 # Deep Learning & AI Agent
 torch>=2.0.0
 stable-baselines3[extra]>=2.2.1
+
+sb3_contrib
