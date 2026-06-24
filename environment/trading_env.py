@@ -1,3 +1,5 @@
+# environment/trading_env.py
+
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -20,9 +22,15 @@ class GoldTradingEnv(gym.Env):
         self.data = self.df[self.feature_cols].values
         
         self.action_space = spaces.Discrete(4)
+        
+        # Core Architectural Fix: Expand the feature dimension to accommodate 
+        # internal trade status indicators (position, bars_held, normalized_unrealized_pnl)
+        self.execution_feature_count = 3
+        total_features = len(self.feature_cols) + self.execution_feature_count
+        
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, 
-            shape=(self.window_size, len(self.feature_cols)), 
+            shape=(self.window_size, total_features), 
             dtype=np.float32
         )
         
@@ -40,19 +48,14 @@ class GoldTradingEnv(gym.Env):
         
     def _filter_session(self, df: pd.DataFrame, session: str) -> pd.DataFrame:
         """Filters the dataframe, ensuring we keep all columns (including env_ prefixed ones)."""
-        # Ensure time is handled correctly
         if 'time' in df.columns:
             df = df.set_index('time')
         elif not isinstance(df.index, pd.DatetimeIndex):
-            # If the CSV didn't have a time column, we might be in trouble, 
-            # but usually it's the index.
             pass
             
-        # Convert index to datetime if it isn't already
         if not isinstance(df.index, pd.DatetimeIndex):
             df.index = pd.to_datetime(df.index)
             
-        # Filter rows
         if session == 'LONDON':
             df = df.between_time('09:00', '14:00')
         elif session == 'NY':
@@ -70,11 +73,23 @@ class GoldTradingEnv(gym.Env):
         return self._next_observation(), self._get_info()
 
     def _next_observation(self):
+        # Fetch standard sequence matrix
         obs = self.data[self.current_step - self.window_size : self.current_step]
-        return np.array(obs, dtype=np.float32)
+        
+        # Derive structural tracking details across the lookback matrix
+        current_price = self.df.loc[self.current_step, 'env_close']
+        unrealized_pnl = (current_price - self.entry_price) * self.position if self.position != 0 else 0.0
+        
+        # Broadcast constant state inputs across the temporal sequence rows
+        position_col = np.full((self.window_size, 1), self.position, dtype=np.float32)
+        bars_col = np.full((self.window_size, 1), self.bars_held, dtype=np.float32)
+        pnl_col = np.full((self.window_size, 1), unrealized_pnl, dtype=np.float32)
+        
+        # Horizontal stack to form unified, complete MDP tracking matrix
+        augmented_obs = np.hstack((obs, position_col, bars_col, pnl_col))
+        return np.array(augmented_obs, dtype=np.float32)
 
     def _get_info(self):
-        # Using the hidden raw price for actual PnL
         current_price = self.df.loc[self.current_step, 'env_close']
         unrealized_pnl = (current_price - self.entry_price) * self.position if self.position != 0 else 0.0
         return {
@@ -102,12 +117,11 @@ class GoldTradingEnv(gym.Env):
             if self.position == 0:
                 self.position = 1
                 self.entry_price = current_price + self.spread
-                # Pay commission upfront
                 self.balance -= self.commission 
                 reward -= self.commission
             elif self.position == -1: 
                 trade_profit = self.entry_price - (current_price + self.spread)
-                self.balance += trade_profit - self.commission # Net profit minus next entry comm
+                self.balance += trade_profit - self.commission
                 reward += trade_profit - self.commission
                 self.position = 1
                 self.entry_price = current_price + self.spread
@@ -116,7 +130,6 @@ class GoldTradingEnv(gym.Env):
             if self.position == 0:
                 self.position = -1
                 self.entry_price = current_price - self.spread
-                # Pay commission upfront
                 self.balance -= self.commission 
                 reward -= self.commission
             elif self.position == 1: 
@@ -138,14 +151,9 @@ class GoldTradingEnv(gym.Env):
                 reward += trade_profit
                 self.position = 0
                 
-        # --- PENALTIES ---
-        # REMOVED: Inactivity tax. The bot is now free to wait hours for the perfect setup.
-            
-        # Intraday Time decay: Punish dead trades held longer than 8 hours (32 bars)
         if self.bars_held > 32:
             reward -= 0.01 * (self.bars_held - 32)
 
-        # --- CIRCUIT BREAKER ---
         info = self._get_info()
         if info["equity"] <= (self.initial_balance * self.max_drawdown_pct):
             terminated = True
