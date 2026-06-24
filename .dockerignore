@@ -1,0 +1,14 @@
+# .dockerignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.pytest_cache/
+saved_models/
+logs/
+data/raw/
+data/processed/*.csv
+*.zip
+*.pkl
