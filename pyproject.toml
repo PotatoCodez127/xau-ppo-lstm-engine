@@ -23,7 +23,7 @@ dependencies = [
 
 [tool.setuptools]
 # Explicitly map flat-layout execution modules to bypass automated discovery collision exceptions
-packages = ["environment", "features", "models", "xagusd_sandbox"]
+packages = ["environment", "features", "models"]
 
 [tool.ruff]
 line-length = 100
