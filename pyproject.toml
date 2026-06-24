@@ -1,0 +1,51 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xau-ppo-lstm-engine"
+version = "3.1.0"
+description = "Volatility-resilient PPO-LSTM deep reinforcement learning execution agent for XAUUSD spot gold structural trading."
+authors = [
+    { name = "Jeandre" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "gymnasium>=0.29.1",
+    "torch>=2.0.0",
+    "stable-baselines3[extra]>=2.2.1",
+    "sb3_contrib",
+]
+
+[tool.setuptools]
+# Explicitly map flat-layout execution modules to bypass automated discovery collision exceptions
+packages = ["environment", "features", "models", "xagusd_sandbox"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+# Select standard lint sets: E (Error), F (Pyflakes), N (PEP8 Naming), I (Isort)
+select = ["E", "F", "N", "I"]
+ignore = []
+
+[tool.ruff.lint.pep8-naming]
+# Whitelist standard mathematical matrix and data split tensor notation to ensure PEP 8 compliance 
+ignore-names = [
+    "X",
+    "X_train",
+    "X_val",
+    "X_test",
+    "y",
+    "y_train",
+    "y_val",
+    "y_test"
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["environment", "features", "models"]
